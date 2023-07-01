@@ -1,0 +1,281 @@
+# _     _            _        _          _____
+#| |__ | | __ _  ___| | _____| | ___   _|___ /
+#| '_ \| |/ _` |/ __| |/ / __| |/ / | | | |_ \
+#| |_) | | (_| | (__|   <\__ \   <| |_| |___) |
+#|_.__/|_|\__,_|\___|_|\_\___/_|\_\\__, |____/
+#                                  |___/
+
+#Maintainer: blacksky3 <blacksky3@tuta.io> <https://github.com/blacksky3>
+#Credits: Dan Johansen <strit@manjaro.org>
+#Credits: Kevin Mihelich <kevin@archlinuxarm.org>
+
+################################# Arch ################################
+
+KARCH=arm64
+
+#######################################################################
+
+pkgbase=linux-manjaro-aarch64-lts
+pkgname=("$pkgbase" "$pkgbase-headers")
+for _p in "${pkgname[@]}"; do
+  eval "package_$_p() {
+    $(declare -f "_package${_p#$pkgbase}")
+    _package${_p#$pkgbase}
+  }"
+done
+pkgver=5.15.63
+pkgrel=1
+commit=e18d27c964c3e201f20df9b77e3e9a8656ee9696
+arch=(aarch64)
+url='https://www.kernel.org/'
+license=(GPL-2.0)
+makedepends=(bison flex make xmlto docbook-xsl kmod inetutils bc git uboot-tools dtc
+             aarch64-linux-gnu-binutils aarch64-linux-gnu-gcc aarch64-linux-gnu-gdb
+             aarch64-linux-gnu-glibc aarch64-linux-gnu-linux-api-headers)
+options=(!strip)
+
+manjarosource=https://gitlab.manjaro.org/manjaro-arm/packages/core/linux-lts/-/raw/$commit
+
+source=(https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/linux-$pkgver.tar.xz
+        ${manjarosource}/config
+        linux.preset
+        60-linux.hook
+        90-linux.hook
+        # Manjaro patches
+        # ALARM patches
+        ${manjarosource}/0001-net-smsc95xx-Allow-mac-address-to-be-set-as-a-parame.patch                #All
+        # Manjaro ARM Patches
+        ${manjarosource}/0002-arm64-dts-amlogic-add-support-for-Radxa-Zero.patch                        #Radxa Zero
+        ${manjarosource}/0003-arm64-dts-allwinner-add-hdmi-sound-to-pine-devices.patch                  #Pine64
+        ${manjarosource}/0004-arm64-dts-allwinner-add-ohci-ehci-to-h5-nanopi.patch                      #Nanopi Neo Plus 2
+        ${manjarosource}/0005-drm-bridge-analogix_dp-Add-enable_psr-param.patch                         #Pinebook Pro
+        ${manjarosource}/0006-gpu-drm-add-new-display-resolution-2560x1440.patch                        #Odroid
+        ${manjarosource}/0007-nuumio-panfrost-Silence-Panfrost-gem-shrinker-loggin.patch                #Panfrost
+        ${manjarosource}/0008-arm64-dts-rockchip-Add-Firefly-Station-p1-support.patch                   #Firelfy Station P1
+        ${manjarosource}/0009-typec-displayport-some-devices-have-pin-assignments-reversed.patch        #DP Alt Mode
+        ${manjarosource}/0010-usb-typec-add-extcon-to-tcpm.patch                                        #DP Alt Mode
+        ${manjarosource}/0011-arm64-rockchip-add-DP-ALT-rockpro64.patch                                 #DP Alt mode - RockPro64
+        ${manjarosource}/0012-ayufan-drm-rockchip-add-support-for-modeline-32MHz-e.patch                #DP Alt mode
+        ${manjarosource}/0013-rk3399-rp64-pcie-Reimplement-rockchip-PCIe-bus-scan-delay.patch           #RockPro64
+        ${manjarosource}/0014-phy-rockchip-typec-Set-extcon-capabilities.patch                          #DP Alt mode
+        ${manjarosource}/0015-usb-typec-altmodes-displayport-Add-hacky-generic-altmode.patch            #DP Alt mode
+        ${manjarosource}/0018-drm-meson-encoder-add-YUV422-output-support.patch                         #G12B
+        ${manjarosource}/0019-arm64-dts-meson-add-initial-Beelink-GT1-Ultimate-dev.patch                #Beelink
+        ${manjarosource}/0020-add-ugoos-device.patch                                                    #Ugoos
+        ${manjarosource}/0021-drm-panfrost-scheduler-fix.patch                                          #Panfrost
+        ${manjarosource}/0022-arm64-dts-rockchip-Add-pcie-bus-scan-delay-to-rockpr.patch                #RockPro64
+        ${manjarosource}/0023-drm-rockchip-support-gamma-control-on-RK3399.patch                        #RK3399
+        ${manjarosource}/0024-Bluetooth-btsdio-Do-not-bind-to-non-removable-BCM4345-and-BCM43455.patch  #Bluetooth
+        ${manjarosource}/0026-arm64-dts-rockchip-Add-back-cdn_dp-to-Pinebook-Pro.patch                  #DP Alt mode - Pinebook Pro
+        # Pinebook Pro patches
+        ${manjarosource}/0016-arm64-dts-rockchip-add-typec-extcon-hack.patch                            #DP Alt mode
+        ${manjarosource}/0017-arm64-dts-rockchip-setup-USB-type-c-port-as-dual-data-role.patch          #USB-C charging
+        # Pinebook, PinePhone and PineTab patches
+        ${manjarosource}/0001-Bluetooth-Add-new-quirk-for-broken-local-ext-features.patch               #Bluetooth
+        ${manjarosource}/0002-Bluetooth-btrtl-add-support-for-the-RTL8723CS.patch                       #Bluetooth
+        ${manjarosource}/0003-arm64-allwinner-a64-enable-Bluetooth-On-Pinebook.patch                    #Bluetooth
+        ${manjarosource}/0004-arm64-dts-allwinner-enable-bluetooth-pinetab-pinepho.patch                #Bluetooth
+        ${manjarosource}/0005-staging-add-rtl8723cs-driver.patch                                        #Wifi
+        ${manjarosource}/0006-pinetab-accelerometer.patch                                               #accelerometer
+        ${manjarosource}/0007-enable-jack-detection-pinetab.patch                                       #Audio
+        ${manjarosource}/0008-enable-hdmi-output-pinetab.patch)                                         #HDMI
+
+prepare(){
+
+  cd "${srcdir}"/linux-$pkgver
+
+  # Apply any patch
+  local src
+  for src in "${source[@]}"; do
+    src="${src%%::*}"
+    src="${src##*/}"
+    [[ $src = *.patch ]] || continue
+    msg2 "Applying patch $src..."
+    patch -Np1 < "../$src"
+  done
+
+  # Copy the config file first
+  # Copy "${srcdir}"/config to "${srcdir}"/linux-${pkgver}/.config
+  msg2 "Copy "${srcdir}"/config to "${srcdir}"/linux-$pkgver/.config"
+  cp "${srcdir}"/config .config
+
+  scripts/config --disable CONFIG_LOCALVERSION
+
+  msg2 "Setting localversion..."
+  scripts/setlocalversion --save-scmversion
+  echo "-${pkgbase}" > localversion
+
+  make ARCH=${KARCH} CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) olddefconfig
+
+  make -s kernelrelease > version
+  msg2 "Prepared $pkgbase version $(<version)"
+}
+
+build(){
+
+  cd "${srcdir}"/linux-$pkgver
+
+  unset LDFLAGS
+
+  make ARCH=${KARCH} CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) Image Image.gz modules
+
+  # Generate device tree blobs with symbols to support applying device tree overlays in U-Boot
+  make ARCH=${KARCH} CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) DTC_FLAGS="-@" dtbs
+}
+
+_package(){
+  pkgdesc='The Linux Kernel and modules with Manjaro ARM patches - AArch64 multi-platform - LTS'
+  depends=(coreutils linux-firmware kmod initramfs)
+  optdepends=('wireless-regdb: to set the correct wireless channels of your country')
+  provides=("linux=${pkgver}" WIREGUARD-MODULE)
+  conflicts=(linux)
+  install=${pkgbase}.install
+
+  cd "${srcdir}"/linux-$pkgver
+
+  local kernver="$(<version)"
+  local modulesdir="${pkgdir}"/usr/lib/modules/${kernver}
+
+  msg2 "Installing boot image and dtbs..."
+  install -Dm644 arch/arm64/boot/Image{,.gz} -t "${pkgdir}/boot"
+  make ARCH=${KARCH} CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) INSTALL_DTBS_PATH="${pkgdir}/boot/dtbs" dtbs_install
+
+  msg2 "Installing modules..."
+  make ARCH=${KARCH} CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) INSTALL_MOD_PATH="${pkgdir}/usr" INSTALL_MOD_STRIP=1 modules_install
+
+  # remove build and source links
+  msg2 "Remove build dir and source dir..."
+  rm -rf "$modulesdir"/{source,build}
+
+  # sed expression for following substitutions
+  local _subst="
+    s|%PKGBASE%|${pkgbase}|g
+    s|%KERNVER%|${kernver}|g
+  "
+
+  # install mkinitcpio preset file
+  sed "${_subst}" ../linux.preset | install -Dm644 /dev/stdin "${pkgdir}/etc/mkinitcpio.d/${pkgbase}.preset"
+
+  # install pacman hooks
+  sed "${_subst}" ../60-linux.hook | install -Dm644 /dev/stdin "${pkgdir}/usr/share/libalpm/hooks/60-${pkgbase}.hook"
+  sed "${_subst}" ../90-linux.hook | install -Dm644 /dev/stdin "${pkgdir}/usr/share/libalpm/hooks/90-${pkgbase}.hook"
+}
+
+_package-headers() {
+  pkgdesc='Header files and scripts for building modules for linux kernel - AArch64 multi-platform'
+  provides=("linux-headers=${pkgver}")
+  conflicts=(linux-headers)
+  depends=("${pkgbase}")
+
+  cd "${srcdir}"/linux-$pkgver
+
+  local builddir="${pkgdir}/usr/lib/modules/${kernver}/build"
+
+  echo "Installing build files..."
+  install -Dt "$builddir" -m644 .config Makefile Module.symvers System.map vmlinux localversion
+  install -Dt "$builddir/kernel" -m644 kernel/Makefile
+  install -Dt "$builddir/arch/${KARCH}" -m644 arch/${KARCH}/Makefile
+  cp -t "$builddir" -a scripts
+
+  # add xfs and shmem for aufs building
+  mkdir -p "$builddir"/{fs/xfs,mm}
+
+  echo "Installing headers..."
+  cp -t "$builddir" -a include
+  cp -t "$builddir/arch/${KARCH}" -a arch/${KARCH}/include
+  install -Dt "$builddir/arch/${KARCH}/kernel" -m644 arch/${KARCH}/kernel/asm-offsets.s
+  mkdir -p "$builddir/arch/arm"
+  cp -t "$builddir/arch/arm" -a arch/arm/include
+
+  install -Dt "$builddir/drivers/md" -m644 drivers/md/*.h
+  install -Dt "$builddir/net/mac80211" -m644 net/mac80211/*.h
+
+  # https://bugs.archlinux.org/task/13146
+  install -Dt "$builddir/drivers/media/i2c" -m644 drivers/media/i2c/msp3400-driver.h
+
+  # https://bugs.archlinux.org/task/20402
+  install -Dt "$builddir/drivers/media/usb/dvb-usb" -m644 drivers/media/usb/dvb-usb/*.h
+  install -Dt "$builddir/drivers/media/dvb-frontends" -m644 drivers/media/dvb-frontends/*.h
+  install -Dt "$builddir/drivers/media/tuners" -m644 drivers/media/tuners/*.h
+
+  # https://bugs.archlinux.org/task/71392
+  install -Dt "$builddir/drivers/iio/common/hid-sensors" -m644 drivers/iio/common/hid-sensors/*.h
+
+  echo "Installing KConfig files..."
+  find . -name 'Kconfig*' -exec install -Dm644 {} "$builddir/{}" \;
+
+  echo "Removing unneeded architectures..."
+  local arch
+  for arch in "$builddir"/arch/*/; do
+    [[ $arch = */${KARCH}/ || $arch == */arm/ ]] && continue
+    echo "Removing $(basename "$arch")"
+    rm -r "$arch"
+  done
+
+  echo "Removing documentation..."
+  rm -r "$builddir/Documentation"
+
+  echo "Removing broken symlinks..."
+  find -L "$builddir" -type l -printf 'Removing %P\n' -delete
+
+  echo "Removing loose objects..."
+  find "$builddir" -type f -name '*.o' -printf 'Removing %P\n' -delete
+
+  echo "Stripping build tools..."
+  local file
+  while read -rd '' file; do
+    case "$(file -bi "$file")" in
+      application/x-sharedlib\;*)      # Libraries (.so)
+        strip -v $STRIP_SHARED "$file" ;;
+      application/x-archive\;*)        # Libraries (.a)
+        strip -v $STRIP_STATIC "$file" ;;
+      application/x-executable\;*)     # Binaries
+        strip -v $STRIP_BINARIES "$file" ;;
+      application/x-pie-executable\;*) # Relocatable binaries
+        strip -v $STRIP_SHARED "$file" ;;
+    esac
+  done < <(find "$builddir" -type f -perm -u+x ! -name vmlinux -print0)
+
+  echo "Adding symlink..."
+  mkdir -p "$pkgdir/usr/src"
+  ln -sr "$builddir" "$pkgdir/usr/src/$pkgbase"
+}
+
+sha256sums=('6dd3cd1e5a629d0002bc6c6ec7e8ea96710104f38664122dd56c83dfd4eb7341'
+            '87b8f1c8809f0ad7e120b6aed5f4e6246d427635496530dae301aef73d16eb35'
+            '6837b3e2152f142f3fff595c6cbd03423f6e7b8d525aac8ae3eb3b58392bd255'
+            '452b8d4d71e1565ca91b1bebb280693549222ef51c47ba8964e411b2d461699c'
+            '71df1b18a3885b151a3b9d926a91936da2acc90d5e27f1ad326745779cd3759d'
+            '9df15313cb0ee126552ead749c30f814946e76f5c0f61512ca779f85144d9b21'
+            '556639e8013b7fb87ce994e9f89824f28c1399e2c559961608e9938adaafd097'
+            '8fac73a0d2b2c60a760407ec55648e1b07d7dadd6170599da62b8dc049c6d456'
+            'f4d9a0a1861d079d2f58538686fb425a43ab23e132dccd1a7f6ceb4fd7ec3e38'
+            '92297624436557fd1e12f50222aa296009dd59ab114abe55508f0927e831ce6c'
+            '85c0bed95d017d6cbec240f560ed189155dbc594cdf921a7f4a45c4e13326552'
+            '5cc20a27f0d7b1b55281d5d0a665fcfa8c4ebcb02a855fb5ccbade18912b37d7'
+            'e07107a477f7851c2e8643eb10cab98f20c33a23265bee0ee87449473b0a47b9'
+            'b2cb22224fd46fff1b26732aba96e2dcd7ef3c36d4360c6c0ff89e7cc48c0d66'
+            '06a357600ade72f6ce9debcfa24f25210ed95b64d20460cb09bf68edf47e6423'
+            '9e289b52ecb43be7a926c3337aba965397e8757ac4b0495ac96a764297a5f08e'
+            'c547b3362c701d9bbce7179763c25a70453b6eb4d80f59b44a6057c6f6ed6719'
+            '21af48bffff108e44a20ed6141abdb13202f5c114946c9d55483a8e7e6839e66'
+            '203fbe3a58e7af9936d8b1bc3860cf999a5686943f1522f9c8c310312759e7b2'
+            '890fb29a0100bef4ccc6f72a613a3772d967b489ffb2703b21f28deb5947e882'
+            '0cf27a8e1132ccaf234eff150992610a58f8b0192a0f3fed660e18d565775527'
+            '5ceaaf04d96030ec6554bd1603740c4824e2974d085a6e3373667157bbdc4d36'
+            'c93a71977c568765bc551f313a87821a7a9ad1301862e581aea5126227c6172e'
+            'cb61200312eab1e0fad76b14586f626c2823c85955e8dc91d9b9a34ffb241d3c'
+            '03cd48ecff57e472bf8f0757606b4b02ca50c3eef0de91bd99bb07fad037e8dc'
+            '1c971b44b71d01e6cc3d5606d4f18ff39c9cd7a1e5e7b82c6a513f0e943583e6'
+            '997bb092ee15043abc3a7b29dc1e2c2fbb0e9560a37d75002b70305295fa05b1'
+            '93f97f31e00d896cfc8ee9ff02d50c4651d28514a16761656aa29411ce5195a9'
+            '302537593004eb42f086016171c2266f1be581d93c553429bd3e0f7800905a41'
+            '91a1ffc1476456b9fed948271506a9499d25cbec9c06e4e08d43441a412a31c2'
+            '89bb0a7a7639320077e8b73b90237661cd1ff73cb3785445d3b401ce127d915e'
+            '1aa46eaefc9bc17dd2d7e201f4e098972babf28769c92122b382cf6068b76880'
+            '50f677d4dca75d782577eed7b7756759f469a1e8dcaea91bc465bdc90dd466d4'
+            'd9495dc6f26114e973d8782088d25e69b299b20c31a60bfb439509ac456ed43a'
+            '065e16cdc31e6652cf8dac5515b4e0a8e6002134a8d03c8035466c03c739e5de'
+            '0e6453bf258c34349e5cc76811d804392aaa1ef9230c343719879682aaff7515'
+            '1ef1c44720798f5e7dcd57ec066e11cb0d4c4db673efcb74b2239534add9564c'
+            'a3b98f1c514dfbc563691e502ceeb05f734aadb7ea3af0e0d2866cb515548529')

@@ -1,0 +1,348 @@
+# _     _            _        _          _____
+#| |__ | | __ _  ___| | _____| | ___   _|___ /
+#| '_ \| |/ _` |/ __| |/ / __| |/ / | | | |_ \
+#| |_) | | (_| | (__|   <\__ \   <| |_| |___) |
+#|_.__/|_|\__,_|\___|_|\_\___/_|\_\\__, |____/
+#                                  |___/
+
+#Maintainer: blacksky3 <blacksky3@tuta.io> <https://github.com/blacksky3>
+#Credits: Dan Johansen <strit@manjaro.org>
+#Credits: Kevin Mihelich <kevin@archlinuxarm.org>
+
+################################# Arch ################################
+
+KARCH=arm64
+
+#######################################################################
+
+pkgbase=linux-manjaro-aarch64
+pkgname=("$pkgbase" "$pkgbase-headers")
+for _p in "${pkgname[@]}"; do
+  eval "package_$_p() {
+    $(declare -f "_package${_p#$pkgbase}")
+    _package${_p#$pkgbase}
+  }"
+done
+pkgver=5.19.5
+pkgrel=1
+archcommit=cce6d1aeee5d75b085b3a40f2b8975483da6ab55
+manjarocommit=7898d08d4a761dc0c23a9b159bead2823e938a90
+arch=(aarch64)
+url='https://www.kernel.org/'
+license=(GPL-2.0)
+makedepends=(bison flex make xmlto docbook-xsl kmod inetutils bc git uboot-tools dtc)
+makedends+=(aarch64-linux-gnu-binutils aarch64-linux-gnu-gcc aarch64-linux-gnu-gdb
+            aarch64-linux-gnu-glibc aarch64-linux-gnu-linux-api-headers)
+options=(!strip)
+
+archlinuxarmsource=https://raw.githubusercontent.com/archlinuxarm/PKGBUILDs/$archcommit/core/linux-aarch64
+manjarosource=https://gitlab.manjaro.org/manjaro-arm/packages/core/linux/-/raw/$manjarocommit
+
+source=(https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/linux-$pkgver.tar.xz
+        ${manjarosource}/config
+        linux.preset
+        60-linux.hook
+        90-linux.hook
+        # linux-aarch64 patches <https://github.com/archlinuxarm/PKGBUILDs/tree/master/core/linux-aarch64>
+        ${archlinuxarmsource}/0001-net-smsc95xx-Allow-mac-address-to-be-set-as-a-parame.patch
+        ${archlinuxarmsource}/0002-arm64-dts-rockchip-disable-pwm0-on-rk3399-firefly.patch
+        # Manjaro patches
+        ${manjarosource}/1001-arm64-dts-allwinner-add-hdmi-sound-to-pine-devices.patch            # A64-based devices
+        ${manjarosource}/1002-arm64-dts-allwinner-add-ohci-ehci-to-h5-nanopi.patch                # Nanopi Neo Plus 2 (by Furkan?)
+        ${manjarosource}/1003-drm-bridge-analogix_dp-Add-enable_psr-param.patch                   # Pinebook Pro;  From list: https://patchwork.kernel.org/project/dri-devel/patch/20200626033023.24214-2-shawn@anastas.io/ (no updates since June 2020)
+        ${manjarosource}/1004-gpu-drm-add-new-display-resolution-2560x1440.patch                  # Odroid;  Not upstreamable
+        ${manjarosource}/1005-panfrost-Silence-Panfrost-gem-shrinker-loggin.patch                 # Panfrost (preference patch, might not be upstreamable)
+        ${manjarosource}/1006-arm64-dts-rockchip-Add-Firefly-Station-p1-support.patch             # Firefly Station P1 (by Furkan)
+        ${manjarosource}/1007-rk3399-rp64-pcie-Reimplement-rockchip-PCIe-bus-scan-delay.patch     # RockPro64 (by @nuumio, perhaps upstreamable?)
+        ${manjarosource}/1008-drm-meson-encoder-add-YUV422-output-support.patch                   # Meson G12B (applied in linux-next)
+        ${manjarosource}/1009-arm64-dts-amlogic-add-initial-Beelink-GT1-Ultimate-dev.patch        # Beelink GT1 Ultimate (by Furkan)
+        ${manjarosource}/1010-arm64-dts-amlogic-add-meson-g12b-ugoos-am6-plus.patch               # Meson Ugoos (by Furkan)
+        ${manjarosource}/1011-drm-panfrost-scheduler-improvements.patch                           # Panfrost;  Will be submitted upstream by Dragan
+        ${manjarosource}/1012-arm64-dts-rockchip-Add-PCIe-bus-scan-delay-to-RockPr.patch          # RockPro64 (relies on patch 1008)
+        ${manjarosource}/1013-drm-rockchip-support-gamma-control-on-RK3399.patch                  # RK3399 VOP;  From list: https://patchwork.kernel.org/project/linux-arm-kernel/cover/20211019215843.42718-1-sigmaris@gmail.com/ (no updates since October 2020)
+        ${manjarosource}/1014-arm64-dts-rockchip-switch-to-hs200-on-rockpi4.patch                 # Radxa Rock Pi 4;  Temporary hotfix, not for upstreaming (by Dragan)
+        ${manjarosource}/1015-arm64-dts-rockchip-Add-PCIe-bus-scan-delay-to-Rock-P.patch          # Radxa Rock Pi 4 (relies on patch 1008)
+        ${manjarosource}/1016-ASOC-sun9i-hdmi-audio-Initial-implementation.patch                  # Allwinner H6 HDMI audio (by Furkan)
+        ${manjarosource}/1017-arm64-dts-allwinner-h6-Add-hdmi-sound-card.patch                    # Allwinner H6 HDMI audio (by Furkan)
+        ${manjarosource}/1018-arm64-dts-allwinner-h6-Enable-hdmi-sound-card-on-boards.patch       # Allwinner H6 HDMI audio (by Furkan)
+        ${manjarosource}/1019-arm64-dts-allwinner-add-OrangePi-3-LTS.patch                        # Orange Pi 3 LTS (by Furkan)
+        ${manjarosource}/1020-arm64-dts-rockchip-add-rk3568-station-p2.patch                      # Firefly Station P2 (by Furkan)
+        ${manjarosource}/1021-dt-bindings-rockchip-Add-Hardkernel-ODROID-M1-board.patch           # Odroid M1;  From list: https://patchwork.kernel.org/project/linux-rockchip/patch/20220329094446.415219-1-tobetter@gmail.com/
+        ${manjarosource}/1022-arm64-dts-rockchip-Add-Hardkernel-ODROID-M1-board.patch             # Odroid M1;  From list, but heavily modified: https://patchwork.kernel.org/project/linux-rockchip/patch/20220329094446.415219-2-tobetter@gmail.com/
+        ${manjarosource}/1023-arm64-dts-meson-radxa-zero-add-support-for-the-usb-t.patch          # Radxa Zero (by Furkan)
+        ${manjarosource}/1024-arm64-dts-rockchip-add-OrangePi-4-LTS.patch                         # Orange Pi 4 LTS (by Furkan)
+        ${manjarosource}/1025-Add-YT8531C-phy-support.patch                                       # Motorcomm PHY (by Furkan)
+        ${manjarosource}/2001-Bluetooth-Add-new-quirk-for-broken-local-ext-features.patch         # Bluetooth;  From list: https://patchwork.kernel.org/project/bluetooth/patch/20200705195110.405139-2-anarsoul@gmail.com/ (no updates since July 2020)
+        ${manjarosource}/2002-Bluetooth-btrtl-add-support-for-the-RTL8723CS.patch                 # Bluetooth;  From list: https://patchwork.kernel.org/project/bluetooth/patch/20200705195110.405139-3-anarsoul@gmail.com/ (no updates since July 2020)
+        ${manjarosource}/2003-arm64-allwinner-a64-enable-Bluetooth-On-Pinebook.patch              # Bluetooth;  From list: https://patchwork.kernel.org/project/bluetooth/patch/20200705195110.405139-4-anarsoul@gmail.com/ (no updates since July 2020)
+        ${manjarosource}/2004-staging-add-rtl8723cs-driver.patch                                  # Realtek WiFi;  Not upstreamable (no longer applies)
+        ${manjarosource}/2005-brcmfmac-USB-probing-provides-no-board-type.patch                   # Bluetooth;  Will be submitted upstream by Dragan
+        ${manjarosource}/2006-arm64-dts-rockchip-Work-around-daughterboard-issues.patch           # Pinebook Pro microSD;  Will be submitted upstream by Dragan
+        ${manjarosource}/3001-arm64-dts-rockchip-add-Quartz64-A-fan-pinctrl.patch                 # Quartz64 and associated patches that are still being upstreamed: START (applied in linux-next)
+        ${manjarosource}/3002-arm64-dts-rockchip-enable-sdr-104-for-sdmmc-on-Quart.patch          # From Peter Geis tree:  https://gitlab.com/pgwipeout/linux-next.git (applied in linux-next)
+        ${manjarosource}/3003-arm64-dts-rockchip-enable-sfc-controller-on-Quartz64.patch          # (applied in linux-next)
+        ${manjarosource}/3004-arm64-dts-rockchip-Add-rk3568-PCIe2x1-controller.patch              # (applied in linux-next)
+        ${manjarosource}/3005-arm64-dts-rockchip-Enable-PCIe-controller-on-quartz6.patch          # (applied in linux-next)
+        ${manjarosource}/3006-arm64-dts-rockchip-rk356x-Add-VOP2-nodes.patch                      # (applied in linux-next)
+        ${manjarosource}/3007-arm64-dts-rockchip-rk356x-Add-HDMI-nodes.patch                      # (applied in linux-next)
+        ${manjarosource}/3008-arm64-dts-rockchip-enable-vop2-and-hdmi-tx-on-quartz.patch          # (applied in linux-next)
+        ${manjarosource}/3009-arm64-dts-rockchip-enable-vop2-and-hdmi-tx-on-rock-3.patch          # (applied in linux-next)
+        ${manjarosource}/3010-irqchip-gic-v3-add-hackaround-for-rk3568-its.patch
+        ${manjarosource}/3011-fixup-arm64-dts-rockchip-Add-rk3568-PCIe2x1-controll.patch          # (applied in linux-next)
+        ${manjarosource}/3012-arm64-dts-rockchip-Enable-video-output-on-Quartz64-B.patch
+        ${manjarosource}/3013-arm64-dts-rockchip-Add-hdmi-cec-assigned-clocks-to-r.patch
+        ${manjarosource}/3014-arm64-dts-rockchip-Add-PCIe-support-to-Quartz64-B.patch
+        ${manjarosource}/3015-arm64-dts-rockchip-Add-Quartz64-B-eeprom.patch
+        ${manjarosource}/3016-arm64-dts-rockchip-Add-PCIe-support-to-SoQuartz-CM4-.patch
+        ${manjarosource}/3017-arm64-dts-rockchip-Enable-video-output-on-SoQuartz-C.patch
+        ${manjarosource}/3018-dt-bindings-Add-Rockchip-rk817-battery-charger-suppo.patch
+        ${manjarosource}/3019-mfd-Add-Rockchip-rk817-battery-charger-support.patch
+        ${manjarosource}/3020-power-supply-Add-charger-driver-for-Rockchip-RK817.patch
+        ${manjarosource}/3021-drm-panel-simple-Add-init-sequence-support.patch
+        ${manjarosource}/3022-arm64-dts-rockchip-Move-Quartz64-A-to-mdio-setup.patch
+        ${manjarosource}/3023-arm64-dts-rockchip-Add-Quartz64-A-battery-node.patch
+        ${manjarosource}/3024-arm64-dts-rockchip-rk356x-Add-HDMI-audio-nodes.patch                # (applied in linux-next)
+        ${manjarosource}/3025-arm64-dts-rockchip-Enable-HDMI-audio-on-Quartz64-A.patch            # (applied in linux-next)
+        ${manjarosource}/3026-phy-rockchip-inno-usb2-Return-zero-after-otg-sync.patch             # From list: https://patchwork.kernel.org/project/linux-rockchip/patch/20220824122543.174730-1-pgwipeout@gmail.com/
+        ${manjarosource}/3028-arm64-dts-rockchip-Add-HDMI-sound-node-to-Quartz64-B.patch
+        ${manjarosource}/3029-arm64-dts-rockchip-Add-HDMI-sound-node-to-SoQuartz-C.patch
+        ${manjarosource}/3030-arm64-dts-rockchip-Add-PCIe-2-nodes-to-quartz64-b.patch)            # Quartz64 and associated patches that are still being upstreamed: END
+
+prepare(){
+
+  cd "${srcdir}"/linux-$pkgver
+
+  # Apply any patch
+  local src
+  for src in "${source[@]}"; do
+    src="${src%%::*}"
+    src="${src##*/}"
+    [[ $src = *.patch ]] || continue
+    msg2 "Applying patch $src..."
+    patch -Np1 < "../$src"
+  done
+
+  # Copy the config file first
+  # Copy "${srcdir}"/config to "${srcdir}"/linux-${pkgver}/.config
+  msg2 "Copy "${srcdir}"/config to "${srcdir}"/linux-$pkgver/.config"
+  cp "${srcdir}"/config .config
+
+  scripts/config --disable CONFIG_LOCALVERSION
+
+  scripts/config --enable CONFIG_LOCALVERSION_AUTO
+
+  msg2 "Don't run depmod on make install"
+  # We'll do this ourselves in packaging
+  sed -i '2iexit 0' scripts/depmod.sh
+
+  msg2 "Setting localversion..."
+  scripts/setlocalversion --save-scmversion
+  echo "-${pkgbase}" > localversion
+
+  make ARCH=${KARCH} CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) olddefconfig
+
+  make -s kernelrelease > version
+  msg2 "Prepared $pkgbase version $(<version)"
+}
+
+build(){
+
+  cd "${srcdir}"/linux-$pkgver
+
+  unset LDFLAGS
+
+  make ARCH=${KARCH} CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) Image Image.gz modules
+
+  # Generate device tree blobs with symbols to support applying device tree overlays in U-Boot
+  make ARCH=${KARCH} CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) DTC_FLAGS="-@" dtbs
+}
+
+_package(){
+  pkgdesc='The Linux Kernel and modules with Manjaro ARM patches - AArch64 multi-platform'
+  depends=(coreutils linux-firmware kmod initramfs)
+  optdepends=('wireless-regdb: to set the correct wireless channels of your country')
+  provides=("linux=${pkgver}" WIREGUARD-MODULE)
+  conflicts=(linux)
+  install=${pkgbase}.install
+
+  cd "${srcdir}"/linux-$pkgver
+
+  local kernver="$(<version)"
+  local modulesdir="${pkgdir}"/usr/lib/modules/${kernver}
+
+  msg2 "Installing boot image and dtbs..."
+  install -Dm644 arch/arm64/boot/Image{,.gz} -t "${pkgdir}/boot"
+  make ARCH=${KARCH} CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) INSTALL_DTBS_PATH="${pkgdir}/boot/dtbs" dtbs_install
+
+  msg2 "Installing modules..."
+  make ARCH=${KARCH} CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) INSTALL_MOD_PATH="${pkgdir}/usr" INSTALL_MOD_STRIP=1 modules_install
+
+  # remove build and source links
+  msg2 "Remove build dir and source dir..."
+  rm -rf "$modulesdir"/{source,build}
+
+  # sed expression for following substitutions
+  local _subst="
+    s|%PKGBASE%|${pkgbase}|g
+    s|%KERNVER%|${kernver}|g
+  "
+
+  # install mkinitcpio preset file
+  sed "${_subst}" ../linux.preset | install -Dm644 /dev/stdin "${pkgdir}/etc/mkinitcpio.d/${pkgbase}.preset"
+
+  # install pacman hooks
+  sed "${_subst}" ../60-linux.hook | install -Dm644 /dev/stdin "${pkgdir}/usr/share/libalpm/hooks/60-${pkgbase}.hook"
+  sed "${_subst}" ../90-linux.hook | install -Dm644 /dev/stdin "${pkgdir}/usr/share/libalpm/hooks/90-${pkgbase}.hook"
+
+  # now we call depmod...
+  msg2 "Now we call depmod..."
+  depmod -b "${pkgdir}/usr" -F System.map "${kernver}"
+}
+
+_package-headers() {
+  pkgdesc='Header files and scripts for building modules for linux kernel - AArch64 multi-platform'
+  provides=("linux-headers=${pkgver}")
+  conflicts=(linux-headers)
+  depends=("${pkgbase}")
+
+  cd "${srcdir}"/linux-$pkgver
+
+  local builddir="${pkgdir}/usr/lib/modules/${kernver}/build"
+
+  echo "Installing build files..."
+  install -Dt "$builddir" -m644 .config Makefile Module.symvers System.map vmlinux localversion
+  install -Dt "$builddir/kernel" -m644 kernel/Makefile
+  install -Dt "$builddir/arch/${KARCH}" -m644 arch/${KARCH}/Makefile
+  cp -t "$builddir" -a scripts
+
+  # add xfs and shmem for aufs building
+  mkdir -p "$builddir"/{fs/xfs,mm}
+
+  echo "Installing headers..."
+  cp -t "$builddir" -a include
+  cp -t "$builddir/arch/${KARCH}" -a arch/${KARCH}/include
+  install -Dt "$builddir/arch/${KARCH}/kernel" -m644 arch/${KARCH}/kernel/asm-offsets.s
+  mkdir -p "$builddir/arch/arm"
+  cp -t "$builddir/arch/arm" -a arch/arm/include
+
+  install -Dt "$builddir/drivers/md" -m644 drivers/md/*.h
+  install -Dt "$builddir/net/mac80211" -m644 net/mac80211/*.h
+
+  # https://bugs.archlinux.org/task/13146
+  install -Dt "$builddir/drivers/media/i2c" -m644 drivers/media/i2c/msp3400-driver.h
+
+  # https://bugs.archlinux.org/task/20402
+  install -Dt "$builddir/drivers/media/usb/dvb-usb" -m644 drivers/media/usb/dvb-usb/*.h
+  install -Dt "$builddir/drivers/media/dvb-frontends" -m644 drivers/media/dvb-frontends/*.h
+  install -Dt "$builddir/drivers/media/tuners" -m644 drivers/media/tuners/*.h
+
+  # https://bugs.archlinux.org/task/71392
+  install -Dt "$builddir/drivers/iio/common/hid-sensors" -m644 drivers/iio/common/hid-sensors/*.h
+
+  echo "Installing KConfig files..."
+  find . -name 'Kconfig*' -exec install -Dm644 {} "$builddir/{}" \;
+
+  echo "Removing unneeded architectures..."
+  local arch
+  for arch in "$builddir"/arch/*/; do
+    [[ $arch = */${KARCH}/ || $arch == */arm/ ]] && continue
+    echo "Removing $(basename "$arch")"
+    rm -r "$arch"
+  done
+
+  echo "Removing documentation..."
+  rm -r "$builddir/Documentation"
+
+  echo "Removing broken symlinks..."
+  find -L "$builddir" -type l -printf 'Removing %P\n' -delete
+
+  echo "Removing loose objects..."
+  find "$builddir" -type f -name '*.o' -printf 'Removing %P\n' -delete
+
+  echo "Stripping build tools..."
+  local file
+  while read -rd '' file; do
+    case "$(file -bi "$file")" in
+      application/x-sharedlib\;*)      # Libraries (.so)
+        strip -v $STRIP_SHARED "$file" ;;
+      application/x-archive\;*)        # Libraries (.a)
+        strip -v $STRIP_STATIC "$file" ;;
+      application/x-executable\;*)     # Binaries
+        strip -v $STRIP_BINARIES "$file" ;;
+      application/x-pie-executable\;*) # Relocatable binaries
+        strip -v $STRIP_SHARED "$file" ;;
+    esac
+  done < <(find "$builddir" -type f -perm -u+x ! -name vmlinux -print0)
+
+  echo "Adding symlink..."
+  mkdir -p "$pkgdir/usr/src"
+  ln -sr "$builddir" "$pkgdir/usr/src/$pkgbase"
+}
+
+sha256sums=('8c3f1cc4f93e50056bb0a8c15a41a8eb6acc7fd71bff6de60b1ef8c4532537bd'
+            'e11656e6e7415b460063115c9e27e6abac5ca200e9ef7b326f7fb7b19db2c064'
+            '6837b3e2152f142f3fff595c6cbd03423f6e7b8d525aac8ae3eb3b58392bd255'
+            '452b8d4d71e1565ca91b1bebb280693549222ef51c47ba8964e411b2d461699c'
+            '71df1b18a3885b151a3b9d926a91936da2acc90d5e27f1ad326745779cd3759d'
+            '3da579c9a0c4e73c3c6d341b393e4b098722f61289affba459140f8f34d6a1e9'
+            'b4e7cd334502c753b846bff4e4da15200b079e534bedce4bac085ae086a07b39'
+            'd7a15909085630991499947120b0b1a6457bd7e450992dd5f10406af1b1fcca7'
+            'f4d9a0a1861d079d2f58538686fb425a43ab23e132dccd1a7f6ceb4fd7ec3e38'
+            '92297624436557fd1e12f50222aa296009dd59ab114abe55508f0927e831ce6c'
+            '85c0bed95d017d6cbec240f560ed189155dbc594cdf921a7f4a45c4e13326552'
+            '5cc20a27f0d7b1b55281d5d0a665fcfa8c4ebcb02a855fb5ccbade18912b37d7'
+            '71d398a592215e17fd0f67fe8e4e5cae424de63dae9dcedb8e0921a0d2c38b82'
+            '21af48bffff108e44a20ed6141abdb13202f5c114946c9d55483a8e7e6839e66'
+            '0cf27a8e1132ccaf234eff150992610a58f8b0192a0f3fed660e18d565775527'
+            '0ad59bccbc8a66cacd9504a9e4006f63c72200e973fa86afd124955752644c6a'
+            'c93a71977c568765bc551f313a87821a7a9ad1301862e581aea5126227c6172e'
+            '6e0ef7b1852660e8d4c60838e9e64fb4baa5c1bcff9755659b94d7aa58aa5c36'
+            '910c9ceb91e7e1f01bcf9ba34c4c9130f50897e1d05dd694be84dbe2b0737624'
+            'e9758d04c00deb87d80a00292f158a69ef0f7f99cf2f090b26e6d2396c6f5912'
+            'a364abb828cb3b066b97d5eed69f40a20871befd90e19a9463aa60fd87ba030c'
+            'ac72f5f425dc4efabd81fd5d6e828cbe5c0635b5c002f01f2fbc11370a4d0c11'
+            '89c68a3a9268f9829de6f38c47b839ead7c4df79bb1521194ae9b3a090fbab39'
+            '8af91b38f8d46467d8f2819b8c82d80990a089ec0da1a40f5874ec0698b99220'
+            '38e3a50c1de09e4574e9be0e2e796c334b6e7be85b928b61eac0f8e722134d82'
+            '6c480cab15076f934d3989774cf5aee66253440777acfac492b6af242231a37f'
+            '2808ab1b3f8c272da1bb9f55b317ea117560dbd042f39f174c53ac515659980a'
+            '61bd414294268b7921c38c365b9cc1171bf6a0d25a8c201b575c4df96857d199'
+            'c7cbfca8daf5f285fb8ea48f036db48a6abf5d7a90703ebe6fc45b1ea46c7ba4'
+            '5515cc6b38a89934a61c04410570b79193817f5151dbf2b4044e31f0b0b9dc3a'
+            'ec8f97a3121756b48197baa94a63a44fd5ec172f1466d24f0a9a1bb04850ed71'
+            '96e99cc065c6c2f9cc34093c0f1c673feb4526d143b85b689511969d67a0df52'
+            'c752c6a47aa031af6ce1b576344c5611ec9765bc956f08610c77fa0bb45d8dbe'
+            '1d64436b14f0c29138abc881576b611e240085c00d924a3eb865734c8ce4c41d'
+            '50f677d4dca75d782577eed7b7756759f469a1e8dcaea91bc465bdc90dd466d4'
+            '1ad516e73144e36b99843f2a047db0a8a53716811f8b425f4dff50344f4da90b'
+            '395de0c24d57751a12d7f30c1247ed1f0edd9d203fdfde38ca058d5b2f14c7b4'
+            'a0078c1038a61f2b0cadd8ee8c5a63ea8f5394dbdc5b2f1b865bf30d3dc1c51b'
+            '396eb9eefccfbf26a9a517090a390fa3a7b5d89738a31f337336c75c0500b913'
+            'a09c77ffddb3c1e09cf6dd440ecbab6a9c568ec21f107eb816683137ea531f1e'
+            '27b17800643f29289dca71123182a0ff7bf8bd141c53f59362b63c26845b1f61'
+            'ac6f8e8a3d317db0d605986c822a6f9e02d439652f67167583b42c9db3396999'
+            'b6116515de1bff540f95c1ea67c05f80270c841f49ed81e9ddbc2054d74ad763'
+            '8f03f0593b2e89cf59a35b4d421b0fca48cf12cf12a5433d8f4146af091d449c'
+            'ee77f67afacd2b8ab7fa585517cb3050b670ca1356743eb795cc274c4344ab64'
+            '0f5ee94218cef118838e5629bc43236587d65624ac10cb96248e71ab6a02f9c5'
+            '385435a38db3bb22e315201690a7e0aa70ac710a9b9be0afcb7c39dec0b142e1'
+            '470921d5b7e3623c0a2e3140724f6e4f5adb30fc73492703188690d54f3d25cd'
+            '411acb2386fbc5b4a4f326b65f10ba73aef893a0fbd6a16175d93fcfcd0d8115'
+            'fd286057c9a38c6b22b9f205d5ddcfc1122e145ba3062d0d06381ca7fd6f15de'
+            '57061a3dd182a820b827d0ca7472e7ca0ba8c6506a205149f69d3e5cd369cf34'
+            'f9a310c2ae630d3c33ce5c5c42ad810154614e55271b8ba0647f9b170610386f'
+            '9cbcf571dcc560336ecd42c43f92e9b1914c84b65cab6c33861cc4f0114c91f1'
+            'c525b1436a41fcd7cc32691b7132b93925cc7cadf95f90d1853d485209dc7b0d'
+            '94a166fa515ebc2812ca8250e5693034dd4e2e66d8f1d57cba61c8b7cb12e1a4'
+            '900e07b98a5a715767c1b888981daaefde34941d9aa10a4fdf0644e1b7902c23'
+            '0b59f651403b2779e09c6858c75ca824ba0d200d138d9bbf10e1b78a68f3a3d2'
+            '7bd5803b0600aa3e34a22fb6a1c2370384305e74c19667ee7268314e959a71b2'
+            '14d35e1a3cfcf0782b72c18ce9ed26c6ea01e9ff9893ba0212462ca3335b17ca'
+            'c50fedc04b2662f617b73ee54fdc51b5eedbc1c1a4115a673659a300f19d5bb3'
+            '286d99f647735176ee9809e0fa5354cb2bd65983bc26785e555c8f3e97aa33b8'
+            'a1bd63f207f3db0d8136e76e790323a531ac4b3d1ed72d83bc677fdaeb48c448'
+            '8bc3ae777c46d178f0d3794b45445d1d15a6f47783253ef332ebd7955ef5893e'
+            'f88536e2b13d2ad955522012e072ae98125fb1eadae7107fff8101b5991b61d5'
+            '6d3471e7905a044903eeef41acb552534c4cfa6836fa8110c6c39c887f69b22a'
+            '363221f37e3507b707c3de8a0df58abf13a7c438a3c81d21fc922db22c750c0d'
+            '7153fdd3d48ca0ec079adb59c59043c7e65d6944b1d4ccbe2f221a9f06039a27')
