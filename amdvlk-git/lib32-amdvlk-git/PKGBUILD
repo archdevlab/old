@@ -1,0 +1,86 @@
+# _     _            _        _          _____
+#| |__ | | __ _  ___| | _____| | ___   _|___ /
+#| '_ \| |/ _` |/ __| |/ / __| |/ / | | | |_ \
+#| |_) | | (_| | (__|   <\__ \   <| |_| |___) |
+#|_.__/|_|\__,_|\___|_|\_\___/_|\_\\__, |____/
+#                                  |___/
+
+#Maintainer: blacksky3 <https://github.com/blacksky3>
+#Credits: Laurent Carlier <lordheavym@gmail.com>
+#Credits: lod <aur@cyber-anlage.de>
+
+pkgname=lib32-amdvlk-git
+pkgdesc="AMD's standalone Vulkan driver (32 bit) (git release)"
+pkgver=2022.Q4.4
+_pkgver=2022.Q4.4
+pkgrel=1
+arch=(i686 x86_64)
+url='https://github.com/GPUOpen-Drivers'
+license=(MIT)
+makedepends=(perl-xml-xpath python lib32-wayland lib32-libxrandr xorg-server-devel cmake ninja git)
+options=(!lto)
+conflicts=(lib32-amdvlk)
+provides=(vulkan-driver lib32-amdvlk)
+source=(amdvlk::git+https://github.com/GPUOpen-Drivers/AMDVLK.git)
+
+pkgver() {
+  cd ${srcdir}/amdvlk
+
+  echo $_pkgver.r$(git rev-list --count HEAD).g$(git rev-parse --short HEAD)
+}
+
+prepare(){
+  local nrepos path name revision
+
+  nrepos=$(xpath -q -e //project amdvlk/default.xml | wc -l)
+
+  while (($nrepos>0))
+  do
+    path=$(xpath -q -e //project[$nrepos]/@path amdvlk/default.xml | sed 's/ path="drivers\/\(.*\)"/\1/g')
+    name=$(xpath -q -e //project[$nrepos]/@name amdvlk/default.xml | sed 's/ name="\(.*\)"/\1/g')
+    revision=$(xpath -q -e //project[$nrepos]/@revision amdvlk/default.xml | sed 's/ revision="\(.*\)"/\1/g')
+    git clone https://github.com/GPUOpen-Drivers/$name $path
+      pushd $path
+        git checkout $revision
+      popd
+    (( nrepos-- ))
+  done
+}
+
+build(){
+export PKG_CONFIG_PATH="/usr/lib32/pkgconfig"
+
+  cd ${srcdir}/xgl
+
+  if dir builds; then
+    rm -rf -v builds
+  fi
+
+  cmake -H. -G Ninja -Bbuilds/Release32 \
+  -DCMAKE_C_FLAGS=-m32 \
+  -DCMAKE_CXX_FLAGS=-m32 \
+  -DLLVM_TARGET_ARCH:STRING=i686 \
+  -DLLVM_DEFAULT_TARGET_TRIPLE="i686-pc-linux-gnu" \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_WAYLAND_SUPPORT=On \
+  -DVKI_RAY_TRACING=Off
+
+  ninja -C builds/Release32
+}
+
+package_lib32-amdvlk-git(){
+  install -m755 -d "${pkgdir}"/usr/lib32
+  install -m755 -d "${pkgdir}"/usr/share/vulkan/icd.d
+  #install -m755 -d "${pkgdir}"/usr/share/vulkan/implicit_layer.d
+  install -m755 -d "${pkgdir}"/usr/share/licenses/${pkgname}
+
+  install ${srcdir}/xgl/builds/Release32/icd/amdvlk32.so "${pkgdir}"/usr/lib32/
+  install ${srcdir}/xgl/builds/Release32/icd/amd_icd32.json "${pkgdir}"/usr/share/vulkan/icd.d/
+  #install ${srcdir}/xgl/builds/Release32/icd/amd_icd32.json "${pkgdir}"/usr/share/vulkan/implicit_layer.d/
+  install ${srcdir}/amdvlk/LICENSE.txt "${pkgdir}"/usr/share/licenses/${pkgname}/
+
+  sed -i "s#/lib#/lib32#g" "${pkgdir}"/usr/share/vulkan/icd.d/amd_icd32.json
+  #sed -i "s#/lib#/lib32#g" "${pkgdir}"/usr/share/vulkan/implicit_layer.d/amd_icd32.json
+}
+
+sha256sums=('SKIP')
