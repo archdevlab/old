@@ -1,0 +1,134 @@
+# _     _            _        _          _____
+#| |__ | | __ _  ___| | _____| | ___   _|___ /
+#| '_ \| |/ _` |/ __| |/ / __| |/ / | | | |_ \
+#| |_) | | (_| | (__|   <\__ \   <| |_| |___) |
+#|_.__/|_|\__,_|\___|_|\_\___/_|\_\\__, |____/
+#                                  |___/
+
+#Maintainer: blacksky3 <https://github.com/blacksky3>
+#Credits: Evangelos Foutras <evangelos@foutrelis.com>
+#Credits: Jan "heftig" Steffens <jan.steffens@gmail.com>
+
+pkgbase=llvm16-git
+pkgname=(llvm16-git llvm-libs16-git)
+url='https://llvm.org/'
+pkgver=16.0.0
+pkgrel=1
+commit=e8a163dc03e6913360beb305620104ba129c081c
+arch=(x86_64)
+license=('custom:Apache 2.0 with LLVM Exception')
+makedepends=(cmake ninja zlib zstd libffi libedit ncurses libxml2 python-setuptools python-psutil python-sphinx git)
+options=(staticlibs !lto) # Getting thousands of test failures with LTO
+source=(git+https://github.com/llvm/llvm-project.git#commit=$commit
+        llvm-config.h)
+
+pkgver(){
+  cd ${srcdir}/llvm-project/llvm
+
+  # This will almost match the output of `llvm-config --version` when the
+  # LLVM_APPEND_VC_REV cmake flag is turned on. The only difference is
+  # dash being replaced with underscore because of Pacman requirements.
+  local _pkgver=$(awk -F 'MAJOR |MINOR |PATCH |)' \
+  'BEGIN { ORS="." ; i=0 } \
+  /set\(LLVM_VERSION_/ { print $2 ; i++ ; if (i==2) ORS="" } \
+  END { print "\n" }' \
+  CMakeLists.txt).r$(git rev-list --count HEAD).g$(git rev-parse --short HEAD)
+  echo "$_pkgver"
+}
+
+prepare(){
+  cd ${srcdir}/llvm-project/llvm
+}
+
+build(){
+  cd ${srcdir}/llvm-project/llvm
+
+  rm -rf build
+
+  mkdir build
+
+  cd build
+
+  local cmake_args=(
+    -G Ninja
+    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_INSTALL_DOCDIR=share/doc
+    -DCMAKE_INSTALL_PREFIX=/usr
+    -DCMAKE_SKIP_RPATH=ON
+    -DLLVM_BINUTILS_INCDIR=/usr/include
+    -DLLVM_BUILD_DOCS=ON
+    -DLLVM_BUILD_LLVM_DYLIB=ON
+    -DLLVM_BUILD_TESTS=ON
+    -DLLVM_ENABLE_BINDINGS=OFF
+    -DLLVM_ENABLE_FFI=ON
+    -DLLVM_ENABLE_RTTI=ON
+    -DLLVM_ENABLE_SPHINX=ON
+    -DLLVM_HOST_TRIPLE=$CHOST
+    -DLLVM_INCLUDE_BENCHMARKS=OFF
+    -DLLVM_INSTALL_UTILS=ON
+    -DLLVM_LINK_LLVM_DYLIB=ON
+    -DLLVM_USE_PERF=ON
+    -DSPHINX_WARNINGS_AS_ERRORS=OFF
+  )
+  cmake .. "${cmake_args[@]}"
+  ninja
+}
+
+package_llvm16-git(){
+  pkgdesc='Compiler infrastructure (git version)'
+  depends=(llvm-libs perl)
+  conflicts=(llvm)
+  provides=(llvm)
+
+  cd llvm-project/llvm/build
+
+  DESTDIR="$pkgdir" ninja install
+
+  # Include lit for running lit-based tests in other projects
+  pushd ../utils/lit
+  python3 setup.py install --root="$pkgdir" -O1
+  popd
+
+  # The runtime libraries go into llvm-libs
+  mv -f "$pkgdir"/usr/lib/lib{LLVM,LTO,Remarks}*.so* "$srcdir"
+  mv -f "$pkgdir"/usr/lib/LLVMgold.so "$srcdir"
+
+  if [[ $CARCH == x86_64 ]]; then
+    # Needed for multilib (https://bugs.archlinux.org/task/29951)
+    # Header stub is taken from Fedora
+    mv "$pkgdir/usr/include/llvm/Config/llvm-config"{,-64}.h
+    cp "$srcdir/llvm-config.h" "$pkgdir/usr/include/llvm/Config/llvm-config.h"
+  fi
+
+  # Remove documentation sources
+  rm -r "$pkgdir"/usr/share/doc/llvm/html/{_sources,.buildinfo}
+
+  install -Dm644 "$srcdir/llvm-project/llvm/LICENSE.TXT" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 "$srcdir/llvm-project/llvm/CREDITS.TXT" "$pkgdir/usr/share/licenses/$pkgname/CREDITS"
+  install -Dm644 "$srcdir/llvm-project/llvm/CODE_OWNERS.TXT" "$pkgdir/usr/share/licenses/$pkgname/CODE_OWNERS"
+}
+
+package_llvm-libs16-git(){
+  pkgdesc='LLVM runtime libraries (git version)'
+  depends=(gcc-libs zlib zstd libffi libedit ncurses libxml2)
+  conflicts=(llvm-libs)
+  provides=(llvm-libs)
+
+  install -d "$pkgdir/usr/lib"
+  cp -P \
+    "$srcdir"/lib{LLVM,LTO,Remarks}*.so* \
+    "$srcdir"/LLVMgold.so \
+    "$pkgdir/usr/lib/"
+
+  # Symlink LLVMgold.so from /usr/lib/bfd-plugins
+  # https://bugs.archlinux.org/task/28479
+  install -d "$pkgdir/usr/lib/bfd-plugins"
+  ln -s ../LLVMgold.so "$pkgdir/usr/lib/bfd-plugins/LLVMgold.so"
+
+  install -Dm644 "$srcdir/llvm-project/llvm/LICENSE.TXT" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 "$srcdir/llvm-project/llvm/CREDITS.TXT" "$pkgdir/usr/share/licenses/$pkgname/CREDITS"
+  install -Dm644 "$srcdir/llvm-project/llvm/CODE_OWNERS.TXT" "$pkgdir/usr/share/licenses/$pkgname/CODE_OWNERS"
+}
+
+sha256sums=('SKIP'
+            '597dc5968c695bbdbb0eac9e8eb5117fcd2773bc91edf5ec103ecffffab8bc48')

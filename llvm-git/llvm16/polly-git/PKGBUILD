@@ -1,0 +1,78 @@
+# _     _            _        _          _____
+#| |__ | | __ _  ___| | _____| | ___   _|___ /
+#| '_ \| |/ _` |/ __| |/ / __| |/ / | | | |_ \
+#| |_) | | (_| | (__|   <\__ \   <| |_| |___) |
+#|_.__/|_|\__,_|\___|_|\_\___/_|\_\\__, |____/
+#                                  |___/
+
+#Maintainer: blacksky3 <https://github.com/blacksky3>
+#Credits: Evangelos Foutras <evangelos@foutrelis.com>
+
+pkgname=polly16-git
+pkgdesc='High-level loop and data-locality optimizer and optimization infrastructure for LLVM (git version)'
+url='https://polly.llvm.org/'
+pkgver=16.0.0
+pkgrel=1
+commit=e8a163dc03e6913360beb305620104ba129c081c
+arch=(x86_64)
+license=('custom:Apache 2.0 with LLVM Exception')
+depends=(gcc-libs)
+makedepends=(llvm cmake ninja python-sphinx git)
+conflicts=(polly)
+provides=(polly)
+source=(git+https://github.com/llvm/llvm-project.git#commit=$commit)
+
+pkgver(){
+  cd ${srcdir}/llvm-project/llvm
+
+  # This will almost match the output of `llvm-config --version` when the
+  # LLVM_APPEND_VC_REV cmake flag is turned on. The only difference is
+  # dash being replaced with underscore because of Pacman requirements.
+  local _pkgver=$(awk -F 'MAJOR |MINOR |PATCH |)' \
+  'BEGIN { ORS="." ; i=0 } \
+  /set\(LLVM_VERSION_/ { print $2 ; i++ ; if (i==2) ORS="" } \
+  END { print "\n" }' \
+  CMakeLists.txt).r$(git rev-list --count HEAD).g$(git rev-parse --short HEAD)
+  echo "$_pkgver"
+}
+
+build(){
+  cd ${srcdir}/llvm-project/polly
+
+  CFLAGS+=' -ffat-lto-objects'
+  CXXFLAGS+=' -ffat-lto-objects'
+
+  rm -rf build
+
+  mkdir build
+
+  cd build
+
+  local cmake_args=(
+    -G Ninja
+    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_INSTALL_DOCDIR=share/doc
+    -DCMAKE_INSTALL_PREFIX=/usr
+    -DLLVM_BUILD_DOCS=ON
+    -DLLVM_BUILD_MAIN_SRC_DIR="$srcdir/llvm-project/llvm"
+    -DLLVM_BUILD_TESTS=ON
+    -DLLVM_ENABLE_SPHINX=ON
+    -DLLVM_EXTERNAL_LIT=/usr/bin/lit
+    -DLLVM_LINK_LLVM_DYLIB=ON
+    -DSPHINX_WARNINGS_AS_ERRORS=OFF
+  )
+  cmake .. "${cmake_args[@]}"
+  ninja
+}
+
+package(){
+  DESTDIR="$pkgdir" ninja -C ${srcdir}/llvm-project/polly/build/ install
+
+  install -Dm644 "$srcdir/llvm-project/polly/LICENSE.TXT" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 "$srcdir/llvm-project/polly/CREDITS.txt" "$pkgdir/usr/share/licenses/$pkgname/CREDITS"
+
+  # Remove documentation sources
+  rm -r "$pkgdir"/usr/share/doc/polly/html/{_sources,.buildinfo}
+}
+
+sha256sums=('SKIP')

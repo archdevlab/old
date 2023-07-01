@@ -1,0 +1,75 @@
+# _     _            _        _          _____
+#| |__ | | __ _  ___| | _____| | ___   _|___ /
+#| '_ \| |/ _` |/ __| |/ / __| |/ / | | | |_ \
+#| |_) | | (_| | (__|   <\__ \   <| |_| |___) |
+#|_.__/|_|\__,_|\___|_|\_\___/_|\_\\__, |____/
+#                                  |___/
+
+#Maintainer: blacksky3 <https://github.com/blacksky3>
+#Credits: Evangelos Foutras <evangelos@foutrelis.com>
+#Credits: Jan "heftig" Steffens <jan.steffens@gmail.com>
+
+pkgname=compiler-rt16-git
+pkgdesc='Compiler runtime libraries for clang (git version)'
+url='https://compiler-rt.llvm.org/'
+pkgver=16.0.0
+pkgrel=1
+commit=e8a163dc03e6913360beb305620104ba129c081c
+_pkgver=16.0.0
+arch=(x86_64)
+license=('custom:Apache 2.0 with LLVM Exception')
+depends=(gcc-libs)
+makedepends=(llvm cmake ninja python git patch)
+# Build 32-bit compiler-rt libraries on x86_64 (FS#41911)
+makedepends_x86_64=(lib32-gcc-libs)
+options=(staticlibs)
+conflicts=(compiler-rt)
+provides=(compiler-rt)
+source=(git+https://github.com/llvm/llvm-project.git#commit=$commit)
+
+pkgver(){
+  cd ${srcdir}/llvm-project/llvm
+
+  # This will almost match the output of `llvm-config --version` when the
+  # LLVM_APPEND_VC_REV cmake flag is turned on. The only difference is
+  # dash being replaced with underscore because of Pacman requirements.
+  local _pkgver=$(awk -F 'MAJOR |MINOR |PATCH |)' \
+  'BEGIN { ORS="." ; i=0 } \
+  /set\(LLVM_VERSION_/ { print $2 ; i++ ; if (i==2) ORS="" } \
+  END { print "\n" }' \
+  CMakeLists.txt).r$(git rev-list --count HEAD).g$(git rev-parse --short HEAD)
+  echo "$_pkgver"
+}
+
+prepare() {
+  cd ${srcdir}/llvm-project/compiler-rt
+}
+
+build(){
+  cd ${srcdir}/llvm-project/compiler-rt
+
+  rm -rf build
+
+  mkdir build
+
+  cd build
+
+  local cmake_args=(
+    -G Ninja
+    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_INSTALL_PREFIX=/usr
+    -DCMAKE_SKIP_RPATH=ON
+    -DCOMPILER_RT_INSTALL_PATH=/usr/lib/clang/$_pkgver
+  )
+  cmake .. "${cmake_args[@]}"
+  ninja
+}
+
+package(){
+  DESTDIR="$pkgdir" ninja -C ${srcdir}/llvm-project/compiler-rt/build/ install
+
+  install -Dm644 ${srcdir}/llvm-project/compiler-rt/LICENSE.TXT "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 ${srcdir}/llvm-project/compiler-rt/CREDITS.TXT "$pkgdir/usr/share/licenses/$pkgname/CREDITS"
+}
+
+sha256sums=('SKIP')
